@@ -30,6 +30,3 @@ The game runs entirely in the console and interacts with the user through text i
 * Comparison is done character by character.
 * If ASCII values are equal, no points are awarded for that round.
 * The final result is based on total points and overall ASCII sum.
-
-
-If you want, I can also give you a shorter minimalist README version or a more advanced one with badges and structure.
