@@ -1,32 +1,129 @@
-# Words War ⚔️
+# ⚔️ Words War
 
-Words War is a simple console-based game that compares two words using their ASCII values. The game evaluates each character position, assigns points based on higher ASCII values, and concludes with a final showdown comparing the total ASCII sum of both words to determine the overall winner.
+A competitive word battle game built with **Python + Streamlit**.
 
-## 📌 Project Overview
+Players enter words of equal length and compete letter-by-letter using alphabetical scoring (a=1 → z=26).  
+The winner is determined by total letter strength.
 
-This project demonstrates fundamental programming concepts including:
+Now powered by:
 
-* Object-Oriented Programming (OOP)
-* Input validation
-* Loops and conditional logic
-* ASCII value comparison
-* Score calculation and result evaluation
+- ✅ `wordfreq` (modern English word list)
+- ✅ Google Translate Arabic validation
+- ✅ Streamlit UI
+- ✅ Translation caching for performance
+- ✅ AI word filtering with translation validation
+- ✅ No external word file required
 
-The game runs entirely in the console and interacts with the user through text input and output.
+---
+
+## 🚀 Live App
+
+Play it here:
+
+👉 https://wordswar-s656xzy6edrxbcbirb7pin.streamlit.app/
+
+---
 
 ## 🎮 How It Works
 
-1. The user enters two words of equal length.
-2. The program validates that both words have the same number of characters.
-3. Each character is compared with its corresponding character using ASCII values.
-4. The word with the higher ASCII value at each position earns one point.
-5. After all characters are compared, total scores are calculated.
-6. A final showdown compares the overall ASCII sum of both words.
-7. The word with the higher score (or higher ASCII total in the final showdown) is declared the winner. If both results are equal, the game ends in a draw.
+### Word Validation
+- Uses **wordfreq top 10,000 English words**
+- Only clean `a–z` lowercase words are allowed
+- No numbers or symbols
+- Words must be the same length
+- No single-letter words
 
-## ✅ Rules
+### Letter Scoring
 
-* Both words must be the same length.
-* Comparison is done character by character.
-* If ASCII values are equal, no points are awarded for that round.
-* The final result is based on total points and overall ASCII sum.
+Each letter has a value:
+
+```
+a = 1
+b = 2
+...
+z = 26
+```
+
+Each position is compared:
+
+- Higher value letter wins
+- Winner earns the full letter value
+- Totals determine the round winner
+
+---
+
+## 🤖 AI Mode
+
+When playing VS AI:
+
+- AI selects a word of the same length
+- AI word must:
+  - Exist in the wordfreq dictionary
+  - Have a valid Arabic translation
+  - Contain actual Arabic characters
+  - Not return the same English word
+
+If translation fails, AI retries until a valid word is found.
+
+---
+
+## 🌍 Arabic Translation System
+
+Each word is translated using:
+
+```
+deep-translator (Google Translate)
+```
+
+Validation rules:
+
+- Translation must not be empty
+- Must not match the original English word
+- Must contain Arabic Unicode characters
+- Uses caching to avoid repeated API calls
+
+---
+
+## 🧠 Technology Stack
+
+- Python 3
+- Streamlit
+- wordfreq
+- deep-translator
+
+---
+
+
+## 🔥 Features
+
+- PVP Mode
+- VS AI Mode
+- Scoreboard with live totals
+- Round history tracking
+- Arabic translation toggle
+- Clean modern UI
+- Fully self-contained word dictionary
+- Optimized for Streamlit Cloud deployment
+
+---
+
+## 🛠 Future Improvements
+
+- Add AI difficulty levels (Easy / Hard)
+- Add word definitions panel
+
+---
+
+## 👨‍💻 Author
+
+AbdulrahmanB-25 Abdulrahman K B 
+EngMohamed-op Mohammed 
+MohammedKQ Mohammed Alburaq 
+Nawaf-Alorabi Nawaf 
+
+
+---
+
+
+Choose your words wisely.  
+Let the battle begin. ⚔️
