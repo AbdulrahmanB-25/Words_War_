@@ -1,29 +1,18 @@
-# words_war.py
-# Streamlit-ready version (no input(), no while True, no notebook !pip, no merge markers)
+# -*- coding: utf-8 -*-
+"""
+Words War - Streamlit version (minimal changes from original code)
+"""
 
 import random
+import nltk
+from nltk.corpus import words
+from deep_translator import GoogleTranslator
 import string
-from typing import Optional, Tuple
-
 import streamlit as st
 
-# Optional deps (installed via requirements.txt)
-import nltk
-from nltk.corpus import words as nltk_words
 
-try:
-    from deep_translator import GoogleTranslator
-except Exception:
-    GoogleTranslator = None  # translation becomes optional
-
-
-# ---------- Setup / Helpers ----------
-
-ALPHABET = {letter: idx + 1 for idx, letter in enumerate(string.ascii_lowercase)}
-
-
-def ensure_nltk_words() -> None:
-    """Ensure NLTK 'words' corpus exists (safe for cloud)."""
+# ---------- Ensure NLTK words corpus is available ----------
+def ensure_words_corpus():
     try:
         nltk.data.find("corpora/words")
     except LookupError:
@@ -31,244 +20,212 @@ def ensure_nltk_words() -> None:
 
 
 @st.cache_data(show_spinner=False)
-def get_dictionary_set() -> set:
-    """Cached dictionary set for fast app reloads."""
-    ensure_nltk_words()
-    return set(w.lower() for w in nltk_words.words())
+def load_dictionary():
+    ensure_words_corpus()
+    return set(w.lower() for w in words.words())
 
 
-def translate_to_arabic(word: str) -> str:
-    """Best-effort translation; never crashes the app."""
-    if GoogleTranslator is None:
-        return "Translation unavailable (deep-translator not installed)"
+web2lowerset = load_dictionary()
+
+# Alphabet scoring: a=1, b=2, ..., z=26
+alphabet = {letter: index + 1 for index, letter in enumerate(string.ascii_lowercase)}
+
+
+# Translate English word to Arabic
+def translate_to_arabic(word):
     try:
         return GoogleTranslator(source="en", target="ar").translate(word)
-    except Exception:
+    except:
         return "Translation failed"
 
 
-def validate_words(word1: str, word2: str, dictionary_set: Optional[set], enforce_dict: bool) -> Tuple[bool, str]:
-    """Validate input; returns (ok, message)."""
-    if not word1 or not word2:
-        return False, "Please enter both words."
+# ---------------- Game Class ----------------
+class Game:
+    def __init__(self):
+        # Store cumulative scores
+        self.total_score_p1 = 0
+        self.total_score_p2 = 0
 
-    w1 = word1.strip().lower()
-    w2 = word2.strip().lower()
+    def play_round(self, word1, word2):
+        # Normalize input to lowercase
+        word1 = word1.lower()
+        word2 = word2.lower()
 
-    if not w1.isalpha() or not w2.isalpha():
-        return False, "No numbers or symbols are allowed."
+        # ---------- Validation Rules ----------
 
-    if len(w1) == 1 or len(w2) == 1:
-        return False, "Enter a word, not a single letter."
+        # No numbers or symbols allowed
+        if not word1.isalpha() or not word2.isalpha():
+            return {"ok": False, "msg": "No numbers or symbols are allowed"}
 
-    if len(w1) != len(w2):
-        return False, "Words must be the same length."
+        # Words must be same length
+        if len(word1) != len(word2):
+            return {"ok": False, "msg": "Words must be same length"}
 
-    if enforce_dict and dictionary_set is not None:
-        if w1 not in dictionary_set:
-            return False, f'"{w1}" is not in the dictionary.'
-        if w2 not in dictionary_set:
-            return False, f'"{w2}" is not in the dictionary.'
+        # Words must exist in dictionary
+        if word1 not in web2lowerset or word2 not in web2lowerset:
+            return {"ok": False, "msg": f"{word1} not in dictionary"}
 
-    return True, ""
+        # Must be a word, not a single letter
+        if len(word1) == 1 or len(word2) == 1:
+            return {"ok": False, "msg": "Enter a word, not a single letter"}
 
+        # ---------- Round Scoring ----------
+        round_score1 = 0
+        round_score2 = 0
+        log_lines = []
 
-def play_round(word1: str, word2: str) -> dict:
-    """Compute round details and scores."""
-    w1 = word1.lower()
-    w2 = word2.lower()
+        # Compare letters position by position
+        for l1, l2 in zip(word1, word2):
+            value1 = alphabet[l1]
+            value2 = alphabet[l2]
 
-    round_score1 = 0
-    round_score2 = 0
-    comparisons = []
+            if value1 > value2:
+                round_score1 += value1
+                log_lines.append(
+                    f"{l1} ({value1}) > {l2} ({value2}) ➜ Player 1 +{value1}"
+                )
 
-    for l1, l2 in zip(w1, w2):
-        v1 = ALPHABET[l1]
-        v2 = ALPHABET[l2]
+            elif value2 > value1:
+                round_score2 += value2
+                log_lines.append(
+                    f"{l2} ({value2}) > {l1} ({value1}) ➜ Player 2 +{value2}"
+                )
 
-        if v1 > v2:
-            round_score1 += v1
-            winner = "P1"
-            points = v1
-        elif v2 > v1:
-            round_score2 += v2
-            winner = "P2"
-            points = v2
+            else:
+                log_lines.append(
+                    f"{l1} ({value1}) = {l2} ({value2}) ➜ No points"
+                )
+
+        # Update total scores
+        self.total_score_p1 += round_score1
+        self.total_score_p2 += round_score2
+
+        # Determine round winner
+        if round_score1 > round_score2:
+            winner = "Player 1"
+        elif round_score2 > round_score1:
+            winner = "Player 2"
         else:
-            winner = "DRAW"
-            points = 0
+            winner = "Draw"
 
-        comparisons.append(
-            {
-                "l1": l1,
-                "v1": v1,
-                "l2": l2,
-                "v2": v2,
-                "winner": winner,
-                "points": points,
-            }
+        return {
+            "ok": True,
+            "word1": word1,
+            "word2": word2,
+            "round_score1": round_score1,
+            "round_score2": round_score2,
+            "winner": winner,
+            "total_p1": self.total_score_p1,
+            "total_p2": self.total_score_p2,
+            "log": log_lines,
+            "tr1": translate_to_arabic(word1),
+            "tr2": translate_to_arabic(word2),
+        }
+
+    # Play against computer
+    def AI_OR_PVP(self, word1):
+        word1 = word1.lower()
+
+        # Filter words that match the same length
+        same_length_words = list(
+            filter(lambda w: len(w) == len(word1), web2lowerset)
         )
 
-    if round_score1 > round_score2:
-        round_winner = "Player 1"
-    elif round_score2 > round_score1:
-        round_winner = "Player 2"
-    else:
-        round_winner = "Draw"
+        if not same_length_words:
+            return {"ok": False, "msg": "No matching word length found for computer"}
 
-    return {
-        "word1": w1,
-        "word2": w2,
-        "round_score1": round_score1,
-        "round_score2": round_score2,
-        "round_winner": round_winner,
-        "comparisons": comparisons,
-    }
+        ai_word = random.choice(same_length_words)
+        result = self.play_round(word1, ai_word)
+
+        if result.get("ok"):
+            result["ai_word"] = ai_word
+
+        return result
 
 
-def pick_ai_word(user_word: str, dictionary_set: set) -> Optional[str]:
-    """Pick a random dictionary word with same length."""
-    target_len = len(user_word)
-    candidates = [w for w in dictionary_set if len(w) == target_len and w.isalpha()]
-    if not candidates:
-        return None
-    return random.choice(candidates)
-
-
-def init_state():
-    if "total_p1" not in st.session_state:
-        st.session_state.total_p1 = 0
-    if "total_p2" not in st.session_state:
-        st.session_state.total_p2 = 0
-    if "history" not in st.session_state:
-        st.session_state.history = []
-
-
-def reset_scores():
-    st.session_state.total_p1 = 0
-    st.session_state.total_p2 = 0
-    st.session_state.history = []
-
-
-# ---------- UI ----------
-
+# ---------------- Streamlit UI ----------------
 st.set_page_config(page_title="Words War", page_icon="⚔️", layout="centered")
-init_state()
-
 st.title("⚔️ Words War")
-st.caption("Compare letters by alphabet value (a=1 … z=26). Higher letter wins points.")
 
-with st.sidebar:
-    st.header("Settings")
-    mode = st.radio("Mode", ["PVP (Player vs Player)", "VS AI"], index=0)
+# Store game object in session state
+if "game" not in st.session_state:
+    st.session_state.game = Game()
 
-    enforce_dict = st.toggle("Enforce English dictionary (NLTK words)", value=True)
-    enable_translation = st.toggle("Show Arabic translation", value=False)
+game = st.session_state.game
 
-    st.divider()
-    if st.button("Reset scores", use_container_width=True):
-        reset_scores()
-        st.success("Scores reset.")
+# Choose mode
+mode = st.radio("Choose mode:", ["PVP", "VS AI"], horizontal=True)
 
-dictionary_set = None
-if enforce_dict or mode == "VS AI":
-    # We need dictionary for AI and/or validation
-    with st.spinner("Loading dictionary..."):
-        dictionary_set = get_dictionary_set()
-
-st.subheader("Scoreboard")
-colA, colB = st.columns(2)
-colA.metric("Player 1", st.session_state.total_p1)
-colB.metric("Player 2", st.session_state.total_p2)
+# Display total scores
+col1, col2 = st.columns(2)
+col1.metric("Player 1 Total", game.total_score_p1)
+col2.metric("Player 2 Total", game.total_score_p2)
 
 st.divider()
 
-if mode == "PVP (Player vs Player)":
-    st.subheader("PVP Round")
-    c1, c2 = st.columns(2)
-    word1 = c1.text_input("Player 1 word", placeholder="e.g., tiger")
-    word2 = c2.text_input("Player 2 word", placeholder="e.g., zebra")
+show_translation = st.toggle("Show Arabic translation", value=True)
 
-    play = st.button("Play round", type="primary", use_container_width=True)
+if mode == "PVP":
+    w1 = st.text_input("Enter Word 1 (Player 1)")
+    w2 = st.text_input("Enter Word 2 (Player 2)")
 
-    if play:
-        ok, msg = validate_words(word1, word2, dictionary_set, enforce_dict)
-        if not ok:
-            st.error(msg)
+    if st.button("Play Round", type="primary"):
+        result = game.play_round(w1.strip(), w2.strip())
+
+        if not result["ok"]:
+            st.error(result["msg"])
         else:
-            result = play_round(word1, word2)
-            st.session_state.total_p1 += result["round_score1"]
-            st.session_state.total_p2 += result["round_score2"]
-            st.session_state.history.insert(0, result)
+            st.success(f"Round Winner: {result['winner']}")
+            st.write(
+                f"Round Score → P1: **{result['round_score1']}** | "
+                f"P2: **{result['round_score2']}**"
+            )
+            st.write(
+                f"TOTAL SCORE → P1: **{result['total_p1']}** | "
+                f"P2: **{result['total_p2']}**"
+            )
 
-            st.success(f"Round winner: {result['round_winner']}")
-            st.write(f"Round score → P1: **{result['round_score1']}** | P2: **{result['round_score2']}**")
+            with st.expander("Letter-by-letter details", expanded=True):
+                for line in result["log"]:
+                    st.write(line)
 
-            with st.expander("See letter-by-letter breakdown", expanded=True):
-                for row in result["comparisons"]:
-                    if row["winner"] == "P1":
-                        st.write(f"**{row['l1']}** ({row['v1']}) > {row['l2']} ({row['v2']}) → Player 1 +{row['points']}")
-                    elif row["winner"] == "P2":
-                        st.write(f"**{row['l2']}** ({row['v2']}) > {row['l1']} ({row['v1']}) → Player 2 +{row['points']}")
-                    else:
-                        st.write(f"{row['l1']} ({row['v1']}) = {row['l2']} ({row['v2']}) → No points")
-
-            if enable_translation:
+            if show_translation:
                 st.subheader("Arabic Translation")
-                st.write(f"{result['word1']} → **{translate_to_arabic(result['word1'])}**")
-                st.write(f"{result['word2']} → **{translate_to_arabic(result['word2'])}**")
+                st.write(f"{result['word1']} → **{result['tr1']}**")
+                st.write(f"{result['word2']} → **{result['tr2']}**")
 
 else:
-    st.subheader("VS AI Round")
-    word1 = st.text_input("Your word", placeholder="e.g., racism")
+    w1 = st.text_input("Enter Word (You)")
 
-    play = st.button("Play vs AI", type="primary", use_container_width=True)
+    if st.button("Play VS AI", type="primary"):
+        result = game.AI_OR_PVP(w1.strip())
 
-    if play:
-        if not word1 or not word1.strip():
-            st.error("Please enter your word.")
+        if not result["ok"]:
+            st.error(result["msg"])
         else:
-            w1 = word1.strip().lower()
+            st.info(f"Computer chose: **{result['ai_word']}**")
+            st.success(f"Round Winner: {result['winner']}")
+            st.write(
+                f"Round Score → P1: **{result['round_score1']}** | "
+                f"P2: **{result['round_score2']}**"
+            )
+            st.write(
+                f"TOTAL SCORE → P1: **{result['total_p1']}** | "
+                f"P2: **{result['total_p2']}**"
+            )
 
-            # Validate user word alone first (AI word will match length)
-            if not w1.isalpha():
-                st.error("No numbers or symbols are allowed.")
-            elif len(w1) == 1:
-                st.error("Enter a word, not a single letter.")
-            elif enforce_dict and dictionary_set is not None and w1 not in dictionary_set:
-                st.error(f'"{w1}" is not in the dictionary.')
-            else:
-                ai_word = pick_ai_word(w1, dictionary_set)
-                if ai_word is None:
-                    st.error("No matching word length found for the computer.")
-                else:
-                    st.info(f"Computer chose: **{ai_word}**")
-                    result = play_round(w1, ai_word)
-                    st.session_state.total_p1 += result["round_score1"]
-                    st.session_state.total_p2 += result["round_score2"]
-                    st.session_state.history.insert(0, result)
+            with st.expander("Letter-by-letter details", expanded=True):
+                for line in result["log"]:
+                    st.write(line)
 
-                    st.success(f"Round winner: {result['round_winner']}")
-                    st.write(f"Round score → P1: **{result['round_score1']}** | P2: **{result['round_score2']}**")
-
-                    with st.expander("See letter-by-letter breakdown", expanded=True):
-                        for row in result["comparisons"]:
-                            if row["winner"] == "P1":
-                                st.write(f"**{row['l1']}** ({row['v1']}) > {row['l2']} ({row['v2']}) → Player 1 +{row['points']}")
-                            elif row["winner"] == "P2":
-                                st.write(f"**{row['l2']}** ({row['v2']}) > {row['l1']} ({row['v1']}) → Player 2 +{row['points']}")
-                            else:
-                                st.write(f"{row['l1']} ({row['v1']}) = {row['l2']} ({row['v2']}) → No points")
-
-                    if enable_translation:
-                        st.subheader("Arabic Translation")
-                        st.write(f"{result['word1']} → **{translate_to_arabic(result['word1'])}**")
-                        st.write(f"{result['word2']} → **{translate_to_arabic(result['word2'])}**")
+            if show_translation:
+                st.subheader("Arabic Translation")
+                st.write(f"{result['word1']} → **{result['tr1']}**")
+                st.write(f"{result['word2']} → **{result['tr2']}**")
 
 st.divider()
-st.subheader("Recent Rounds")
-if not st.session_state.history:
-    st.caption("No rounds played yet.")
-else:
-    for i, h in enumerate(st.session_state.history[:10], start=1):
-        st.write(f"{i}. **{h['word1']}** vs **{h['word2']}** → P1 {h['round_score1']} | P2 {h['round_score2']} — *{h['round_winner']}*")
+
+# Reset game
+if st.button("Reset Game"):
+    st.session_state.game = Game()
+    st.rerun()
