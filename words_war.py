@@ -8,7 +8,7 @@ Original file is located at
 """
 
 # import lib
-!pip install deep-translator
+#!pip install deep-translator
 
 import random
 import nltk
