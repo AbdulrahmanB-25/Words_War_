@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # -*- coding: utf-8 -*-
 """Words_War.ipynb
 
@@ -181,3 +182,343 @@ while True:
     # If a single letter is inputed the Translation should say letter not word .(Maybe rejcet a single letter ?) DONE
     # Maybe sperate the player from the AI score
 
+=======
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "include_colab_link": True
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/AbdulrahmanB-25/Words_War_/blob/main/Words_War.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# import lib\n",
+        "!pip install deep-translator\n",
+        "\n",
+        "import random\n",
+        "import nltk\n",
+        "from nltk.corpus import words\n",
+        "from deep_translator import GoogleTranslator\n",
+        "import string\n",
+        "\n",
+        "\n",
+        "nltk.download('words')\n",
+        "web2lowerset = set(w.lower() for w in words.words())"
+      ],
+      "metadata": {
+        "id": "grz7uhiYixEL",
+        "outputId": "ce990f7b-694a-44ec-d8d2-1466751554e8",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "collapsed": true
+      },
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Collecting deep-translator\n",
+            "  Downloading deep_translator-1.11.4-py3-none-any.whl.metadata (30 kB)\n",
+            "Requirement already satisfied: beautifulsoup4<5.0.0,>=4.9.1 in /usr/local/lib/python3.12/dist-packages (from deep-translator) (4.13.5)\n",
+            "Requirement already satisfied: requests<3.0.0,>=2.23.0 in /usr/local/lib/python3.12/dist-packages (from deep-translator) (2.32.4)\n",
+            "Requirement already satisfied: soupsieve>1.2 in /usr/local/lib/python3.12/dist-packages (from beautifulsoup4<5.0.0,>=4.9.1->deep-translator) (2.8.3)\n",
+            "Requirement already satisfied: typing-extensions>=4.0.0 in /usr/local/lib/python3.12/dist-packages (from beautifulsoup4<5.0.0,>=4.9.1->deep-translator) (4.15.0)\n",
+            "Requirement already satisfied: charset_normalizer<4,>=2 in /usr/local/lib/python3.12/dist-packages (from requests<3.0.0,>=2.23.0->deep-translator) (3.4.4)\n",
+            "Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.12/dist-packages (from requests<3.0.0,>=2.23.0->deep-translator) (3.11)\n",
+            "Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.12/dist-packages (from requests<3.0.0,>=2.23.0->deep-translator) (2.5.0)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.12/dist-packages (from requests<3.0.0,>=2.23.0->deep-translator) (2026.1.4)\n",
+            "Downloading deep_translator-1.11.4-py3-none-any.whl (42 kB)\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m42.3/42.3 kB\u001b[0m \u001b[31m2.9 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hInstalling collected packages: deep-translator\n",
+            "Successfully installed deep-translator-1.11.4\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "[nltk_data] Downloading package words to /root/nltk_data...\n",
+            "[nltk_data]   Unzipping corpora/words.zip.\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# الاحرف من 1-26\n",
+        "alphabet = {letter: index+1 for index, letter in enumerate(string.ascii_lowercase)}\n",
+        "\n",
+        "\n",
+        "# الترجمة\n",
+        "def translate_to_arabic(word):\n",
+        "    try:\n",
+        "        return GoogleTranslator(source='en', target='ar').translate(word)\n",
+        "    except:\n",
+        "        return \"Translation failed\"\n",
+        "\n",
+        "\n",
+        "\n",
+        "# Game Class\n",
+        "class Game():\n",
+        "\n",
+        "    def __init__(self):\n",
+        "        self.total_score_p1 = 0\n",
+        "        self.total_score_p2 = 0\n",
+        "\n",
+        "    def play_round(self, word1, word2):\n",
+        "#--------توحيد الكلمات\n",
+        "\n",
+        "        word1 = word1.lower()\n",
+        "        word2 = word2.lower()\n",
+        "\n",
+        "#--------القواعد--------\n",
+        "\n",
+        "#--------لا يسمح بلأرقام أو بالرموز\n",
+        "        if not word1.isalpha() or not word2.isalpha():\n",
+        "            print(\"No numbers or symbols are allowed\")\n",
+        "            return\n",
+        "#--------لازم يكونو نفس عدد الاحرف\n",
+        "        if len(word1) != len(word2):\n",
+        "            print(\"Words must be same length\\n\")\n",
+        "            return\n",
+        "#--------لازم تكون الكلمة موجودة في هذي المكتبة\n",
+        "        if word1 not in web2lowerset or word2 not in web2lowerset:\n",
+        "            print(f\"{word1} not in dictionary\\n\")\n",
+        "            return\n",
+        "#---------------------- لازم تكون كلمة مو حرف\n",
+        "        if len(word1) ==1 or len(word2) == 1:\n",
+        "          print(\"Enter a word not a letter\\n\")\n",
+        "          return\n",
+        "\n",
+        "#--------تصفير للنقاط\n",
+        "        round_score1 = 0\n",
+        "        round_score2 = 0\n",
+        "\n",
+        "        print(\"\\n\" + \"=\"*30)\n",
+        "        print(f\"  {word1.lower()}  VS  {word2.lower()}\")\n",
+        "        print(\"=\"*30)\n",
+        "\n",
+        "        for l1, l2 in zip(word1, word2):\n",
+        "            value1 = alphabet[l1]\n",
+        "            value2 = alphabet[l2]\n",
+        "\n",
+        "#--------مقارنة بين الحروف\n",
+        "\n",
+        "            if value1 > value2:\n",
+        "                round_score1 += value1\n",
+        "                print(f\"{l1.lower()} ({value1}) > {l2.lower()} ({value2})  ➜  Player 1 +{value1}\")\n",
+        "\n",
+        "            elif value2 > value1:\n",
+        "                round_score2 += value2\n",
+        "                print(f\"{l2.lower()} ({value2}) > {l1.lower()} ({value1})  ➜  Player 2 +{value2}\")\n",
+        "\n",
+        "            else:\n",
+        "                print(f\"{l1.lower()} ({value1}) = {l2.lower()} ({value2})  ➜  No points\")\n",
+        "\n",
+        "        # اضفت تحديث السكور\n",
+        "        self.total_score_p1 += round_score1\n",
+        "        self.total_score_p2 += round_score2\n",
+        "\n",
+        "        print(\"-\"*30)\n",
+        "        print(f\"Round Score → P1: {round_score1} | P2: {round_score2}\")\n",
+        "\n",
+        "        if round_score1 > round_score2:\n",
+        "            print(\"Round Winner: Player 1\")\n",
+        "        elif round_score2 > round_score1:\n",
+        "            print(\"Round Winner: Player 2\")\n",
+        "        else:\n",
+        "            print(\"Round Draw\")\n",
+        "\n",
+        "        print(\"TOTAL SCORE\")\n",
+        "        print(f\"Player 1: {self.total_score_p1}\")\n",
+        "        print(f\"Player 2: {self.total_score_p2}\")\n",
+        "        print(\"=\"*39)\n",
+        "\n",
+        "        print(\"Arabic Translation:\")\n",
+        "        print(f\"{word1} → {translate_to_arabic(word1)}\")\n",
+        "        print(f\"{word2} → {translate_to_arabic(word2)}\")\n",
+        "        print(\"=\"*30 + \"\\n\")\n",
+        "\n",
+        "\n",
+        "\n",
+        "#--------- اختيار لعب مع الكمبيوتر\n",
+        "\n",
+        "    def AI_OR_PVP(self, word1):\n",
+        "\n",
+        "      word1 = word1.lower()\n",
+        "\n",
+        "      same_length_words = list(\n",
+        "    filter(lambda w: len(w) == len(word1), web2lowerset)\n",
+        "    )\n",
+        "      if not same_length_words:\n",
+        "        print(\"No matching word length found for computer\")\n",
+        "        return\n",
+        "      ai_word = random.choice(same_length_words)\n",
+        "      print(f\"\\nComputer chose: {ai_word}\")\n",
+        "\n",
+        "      self.play_round(word1, ai_word)\n",
+        "\n",
+        "\n",
+        "\n",
+        "# Main Loop\n",
+        "game = Game()\n",
+        "\n",
+        "while True:\n",
+        "\n",
+        "    print(\"Enter 0 to exit\")\n",
+        "    choose = input(\"Choose mode: 1) PVP 2) VS AI : \").strip()\n",
+        "\n",
+        "    if choose == \"0\":\n",
+        "        print(\"Game Ended\")\n",
+        "        break\n",
+        "\n",
+        "    elif choose == \"1\":\n",
+        "        word1 = input(\"Enter Word 1: \").strip()\n",
+        "        if word1 == \"0\":\n",
+        "            print(\"Game Ended\")\n",
+        "            break\n",
+        "\n",
+        "        word2 = input(\"Enter Word 2: \").strip()\n",
+        "        if word2 == \"0\":\n",
+        "            print(\"Game Ended\")\n",
+        "            break\n",
+        "\n",
+        "        game.play_round(word1, word2)\n",
+        "\n",
+        "    elif choose == \"2\":\n",
+        "        word1 = input(\"Enter word 1: \").strip()\n",
+        "        if word1 == \"0\":\n",
+        "            print(\"Game Ended\")\n",
+        "            break\\\n",
+        "\n",
+        "        game.AI_OR_PVP(word1)\n",
+        "\n",
+        "    else:\n",
+        "        print(\"Invalid choice\\n\")\n",
+        "\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "ECNlUK0lm_Ln",
+        "outputId": "79fc26fb-4891-40bb-f288-4fc512ddd10c",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 947
+        },
+        "collapsed": true
+      },
+      "execution_count": 22,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Enter 0 to exit\n",
+            "Choose mode: 1) PVP 2) VS AI : 2\n",
+            "Enter word 1: racism\n",
+            "\n",
+            "Computer chose: fidget\n",
+            "\n",
+            "==============================\n",
+            "  racism  VS  fidget\n",
+            "==============================\n",
+            "r (18) > f (6)  ➜  Player 1 +18\n",
+            "i (9) > a (1)  ➜  Player 2 +9\n",
+            "d (4) > c (3)  ➜  Player 2 +4\n",
+            "i (9) > g (7)  ➜  Player 1 +9\n",
+            "s (19) > e (5)  ➜  Player 1 +19\n",
+            "t (20) > m (13)  ➜  Player 2 +20\n",
+            "------------------------------\n",
+            "Round Score → P1: 46 | P2: 33\n",
+            "Round Winner: Player 1\n",
+            "TOTAL SCORE\n",
+            "Player 1: 46\n",
+            "Player 2: 33\n",
+            "=======================================\n",
+            "Arabic Translation:\n",
+            "racism → عنصرية\n",
+            "fidget → تململ\n",
+            "==============================\n",
+            "\n",
+            "Enter 0 to exit\n",
+            "Choose mode: 1) PVP 2) VS AI : 1\n",
+            "Enter Word 1: Dragon\n",
+            "Enter Word 2: Planes\n",
+            "dragon not in dictionary\n",
+            "\n",
+            "Enter 0 to exit\n"
+          ]
+        },
+        {
+          "output_type": "error",
+          "ename": "KeyboardInterrupt",
+          "evalue": "Interrupted by user",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyboardInterrupt\u001b[0m                         Traceback (most recent call last)",
+            "\u001b[0;32m/tmp/ipython-input-124152243.py\u001b[0m in \u001b[0;36m<cell line: 0>\u001b[0;34m()\u001b[0m\n\u001b[1;32m    120\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    121\u001b[0m     \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Enter 0 to exit\"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 122\u001b[0;31m     \u001b[0mchoose\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0minput\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Choose mode: 1) PVP 2) VS AI : \"\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mstrip\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    123\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    124\u001b[0m     \u001b[0;32mif\u001b[0m \u001b[0mchoose\u001b[0m \u001b[0;34m==\u001b[0m \u001b[0;34m\"0\"\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.12/dist-packages/ipykernel/kernelbase.py\u001b[0m in \u001b[0;36mraw_input\u001b[0;34m(self, prompt)\u001b[0m\n\u001b[1;32m   1175\u001b[0m                 \u001b[0;34m\"raw_input was called, but this frontend does not support input requests.\"\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1176\u001b[0m             )\n\u001b[0;32m-> 1177\u001b[0;31m         return self._input_request(\n\u001b[0m\u001b[1;32m   1178\u001b[0m             \u001b[0mstr\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mprompt\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1179\u001b[0m             \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_parent_ident\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m\"shell\"\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.12/dist-packages/ipykernel/kernelbase.py\u001b[0m in \u001b[0;36m_input_request\u001b[0;34m(self, prompt, ident, parent, password)\u001b[0m\n\u001b[1;32m   1217\u001b[0m             \u001b[0;32mexcept\u001b[0m \u001b[0mKeyboardInterrupt\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1218\u001b[0m                 \u001b[0;31m# re-raise KeyboardInterrupt, to truncate traceback\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1219\u001b[0;31m                 \u001b[0;32mraise\u001b[0m \u001b[0mKeyboardInterrupt\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Interrupted by user\"\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mfrom\u001b[0m \u001b[0;32mNone\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1220\u001b[0m             \u001b[0;32mexcept\u001b[0m \u001b[0mException\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1221\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mlog\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mwarning\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"Invalid Message:\"\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mexc_info\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mTrue\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mKeyboardInterrupt\u001b[0m: Interrupted by user"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "\n",
+        "\n",
+        "    # Need optmizing\n",
+        "    # Need function for matching word : DONE\n",
+        "    # Need function for Random word : DONE\n",
+        "    # install new dict for explaining  mean of the word : DONE\n",
+        "    # install new dict for translation purpose :  DONE\n",
+        "    # giving the choice to ask the user if he want to play vs bot or pvp : DONE\n",
+        "    # Add an loop if the player chose Player vs Player so it ask for a new word or words DONE\n",
+        "    # If a single letter is inputed the Translation should say letter not word .(Maybe rejcet a single letter ?) DONE\n",
+        "    # Maybe sperate the player from the AI score\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "OQgUkfDDsB7i"
+      },
+      "execution_count": 17,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "ZCWvoBXaPOEl"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
+>>>>>>> 22fa49f9221f04fcb3f9c7d1b837ee8f30f8c709
