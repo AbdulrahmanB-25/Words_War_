@@ -1,57 +1,73 @@
 # -*- coding: utf-8 -*-
 """
-Words War - Streamlit version (minimal changes from original code)
+Words War 
 """
 
 import random
-import nltk
-from nltk.corpus import words
-from deep_translator import GoogleTranslator
 import string
 import streamlit as st
+from wordfreq import top_n_list
+from deep_translator import GoogleTranslator
 
 
-# ---------- Ensure NLTK words corpus is available ----------
-def ensure_words_corpus():
-    try:
-        nltk.data.find("corpora/words")
-    except LookupError:
-        nltk.download("words")
-
-
+# ---------------- Dictionary (wordfreq) ----------------
 @st.cache_data(show_spinner=False)
-def load_dictionary():
-    ensure_words_corpus()
-    return set(w.lower() for w in words.words())
+def load_dictionary_wordfreq(n_top=10000):
+    raw_words = top_n_list("en", n_top)
+    return set(
+        w for w in raw_words
+        if w and w.isalpha() and w.islower() and all(ch in string.ascii_lowercase for ch in w)
+    )
 
 
-web2lowerset = load_dictionary()
+web2lowerset = load_dictionary_wordfreq(10000)
 
 # Alphabet scoring: a=1, b=2, ..., z=26
 alphabet = {letter: index + 1 for index, letter in enumerate(string.ascii_lowercase)}
 
 
-# Translate English word to Arabic
-def translate_to_arabic(word):
+# ---------------- Translation + Validation ----------------
+_translation_cache = {}
+
+def translate_to_arabic_cached(word):
+    word = word.lower()
+    if word in _translation_cache:
+        return _translation_cache[word]
     try:
-        return GoogleTranslator(source="en", target="ar").translate(word)
+        ar = GoogleTranslator(source="en", target="ar").translate(word)
     except:
-        return "Translation failed"
+        ar = None
+    _translation_cache[word] = ar
+    return ar
+# Arabic uniblock
+def contains_arabic(text):
+    return any('\u0600' <= ch <= '\u06FF' for ch in text)
+
+def is_good_arabic_translation(word, ar_text):
+    if not ar_text or ar_text.strip() == "":
+        return False
+    ar_text = ar_text.strip()
+
+    # If translation returns the same English word, reject
+    if ar_text.lower() == word.lower():
+        return False
+
+    # Must contain Arabic characters
+    if not contains_arabic(ar_text):
+        return False
+
+    return True
 
 
 # ---------------- Game Class ----------------
 class Game:
     def __init__(self):
-        # Store cumulative scores
         self.total_score_p1 = 0
         self.total_score_p2 = 0
 
     def play_round(self, word1, word2):
-        # Normalize input to lowercase
-        word1 = word1.lower()
-        word2 = word2.lower()
-
-        # ---------- Validation Rules ----------
+        word1 = word1.lower().strip()
+        word2 = word2.lower().strip()
 
         # No numbers or symbols allowed
         if not word1.isalpha() or not word2.isalpha():
@@ -61,52 +77,47 @@ class Game:
         if len(word1) != len(word2):
             return {"ok": False, "msg": "Words must be same length"}
 
-        # Words must exist in dictionary
-        if word1 not in web2lowerset or word2 not in web2lowerset:
-            return {"ok": False, "msg": f"{word1} not in dictionary"}
-
         # Must be a word, not a single letter
         if len(word1) == 1 or len(word2) == 1:
             return {"ok": False, "msg": "Enter a word, not a single letter"}
+
+        # Words must exist in dictionary (wordfreq)
+        if word1 not in web2lowerset or word2 not in web2lowerset:
+            missing = []
+            if word1 not in web2lowerset: missing.append(word1)
+            if word2 not in web2lowerset: missing.append(word2)
+            return {"ok": False, "msg": "Not in dictionary: " + ", ".join(missing)}
 
         # ---------- Round Scoring ----------
         round_score1 = 0
         round_score2 = 0
         log_lines = []
 
-        # Compare letters position by position
         for l1, l2 in zip(word1, word2):
             value1 = alphabet[l1]
             value2 = alphabet[l2]
 
             if value1 > value2:
                 round_score1 += value1
-                log_lines.append(
-                    f"{l1} ({value1}) > {l2} ({value2}) ➜ Player 1 +{value1}"
-                )
-
+                log_lines.append(f"{l1} ({value1}) > {l2} ({value2}) ➜ Player 1 +{value1}")
             elif value2 > value1:
                 round_score2 += value2
-                log_lines.append(
-                    f"{l2} ({value2}) > {l1} ({value1}) ➜ Player 2 +{value2}"
-                )
-
+                log_lines.append(f"{l2} ({value2}) > {l1} ({value1}) ➜ Player 2 +{value2}")
             else:
-                log_lines.append(
-                    f"{l1} ({value1}) = {l2} ({value2}) ➜ No points"
-                )
+                log_lines.append(f"{l1} ({value1}) = {l2} ({value2}) ➜ No points")
 
-        # Update total scores
         self.total_score_p1 += round_score1
         self.total_score_p2 += round_score2
 
-        # Determine round winner
         if round_score1 > round_score2:
             winner = "Player 1"
         elif round_score2 > round_score1:
             winner = "Player 2"
         else:
             winner = "Draw"
+
+        tr1 = translate_to_arabic_cached(word1)
+        tr2 = translate_to_arabic_cached(word2)
 
         return {
             "ok": True,
@@ -118,28 +129,46 @@ class Game:
             "total_p1": self.total_score_p1,
             "total_p2": self.total_score_p2,
             "log": log_lines,
-            "tr1": translate_to_arabic(word1),
-            "tr2": translate_to_arabic(word2),
+            "tr1": tr1 if tr1 else "Translation failed",
+            "tr2": tr2 if tr2 else "Translation failed",
         }
 
-    # Play against computer
     def AI_OR_PVP(self, word1):
-        word1 = word1.lower()
+        word1 = word1.lower().strip()
 
-        # Filter words that match the same length
-        same_length_words = list(
-            filter(lambda w: len(w) == len(word1), web2lowerset)
-        )
+        # Validate input
+        if not word1.isalpha():
+            return {"ok": False, "msg": "No numbers or symbols are allowed"}
+
+        if len(word1) == 1:
+            return {"ok": False, "msg": "Enter a word, not a single letter"}
+
+        if word1 not in web2lowerset:
+            return {"ok": False, "msg": f"{word1} not in dictionary"}
+
+        # Filter words that match same length
+        same_length_words = [w for w in web2lowerset if len(w) == len(word1)]
 
         if not same_length_words:
             return {"ok": False, "msg": "No matching word length found for computer"}
 
-        ai_word = random.choice(same_length_words)
-        result = self.play_round(word1, ai_word)
+        # Pick a word that has a good Arabic translation
+        max_tries = 50
+        ai_word = None
 
+        for _ in range(max_tries):
+            candidate = random.choice(same_length_words)
+            ar = translate_to_arabic_cached(candidate)
+            if is_good_arabic_translation(candidate, ar):
+                ai_word = candidate
+                break
+
+        if ai_word is None:
+            return {"ok": False, "msg": "AI couldn't find a word with a good Arabic translation. Try again."}
+
+        result = self.play_round(word1, ai_word)
         if result.get("ok"):
             result["ai_word"] = ai_word
-
         return result
 
 
