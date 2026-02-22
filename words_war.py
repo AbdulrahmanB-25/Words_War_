@@ -146,6 +146,14 @@ class Game:
 # ---------------- Streamlit UI ----------------
 st.set_page_config(page_title="Words War", page_icon="⚔️", layout="centered")
 st.title("⚔️ Words War")
+st.markdown(
+    """
+**Welcome to Words War!**  
+A fun and interactive game where players battle using words.  
+Compare letters, score points, and learn new words with translations!  
+""",
+    unsafe_allow_html=True
+)
 
 # Store game object in session state
 if "game" not in st.session_state:
