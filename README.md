@@ -114,7 +114,7 @@ Validation rules:
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Devs
 
 [Abdulrahman B.](https://github.com/AbdulrahmanB-25)
 [Mohammed](https://github.com/EngMohamed-op)
